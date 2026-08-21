@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Duty Slip Portal — Working Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #152a43; --ink-2: #1d3a5c; --accent: #22c3e6; --accent-dim: #dff6fb;
+    --paper: #f4f6f8; --card: #ffffff; --line: #dfe4e9; --steel: #5a6472;
+    --amber: #c9821f; --amber-dim: #f7e9d3;
+    --moss: #2f9e5c; --moss-dim: #dcf3e5;
+    --rust: #d64545;
+    --font-display: 'Inter', -apple-system, sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: var(--font-body); background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: var(--font-body); }
+
+  .screen { display:none; min-height: 100vh; }
+  .screen.active { display:block; }
+
+  .session-bar { display:flex; justify-content:space-between; align-items:center; padding: 12px 22px; font-size:12.5px; color: var(--steel); border-bottom: 1px solid var(--line); background:#fff; }
+  .session-bar .who { display:flex; align-items:center; gap:8px; }
+  .session-bar .avatar { width:24px; height:24px; border-radius:50%; background:var(--accent-dim); color:#0b6478; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:var(--font-mono); }
+  .session-bar .role-tag { font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:.4px; padding:2px 7px; border-radius:4px; background:var(--paper); border:1px solid var(--line); text-transform:uppercase; }
+  .btn-ghost-sm { background:none; border:1px solid var(--line); color:var(--ink); padding:6px 13px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; }
+  .btn-ghost-sm:hover { border-color: var(--rust); color: var(--rust); }
+  .reset-link { background:none; border:none; color:var(--steel); font-size:11px; cursor:pointer; text-decoration:underline; }
+
+  /* ---------- LOGIN ---------- */
+  .login-wrap { display:flex; min-height: 100vh; }
+  .login-left {
+    flex: 1.1; background: linear-gradient(155deg, var(--ink) 0%, var(--ink-2) 100%);
+    color:#fff; padding: 50px 52px; display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; overflow:hidden;
+  }
+  .login-left::before {
+    content:''; position:absolute; inset:0; opacity:.08; pointer-events:none;
+    background-image: repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 1px, transparent 46px);
+  }
+  .login-left .top { position:relative; }
+  .plate {
+    display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--accent); color: var(--accent);
+    font-family: var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:2.2px;
+    padding: 5px 11px; margin-bottom: 22px; border-radius:3px;
+  }
+  .login-left h1 { font-family: var(--font-display); font-size:29px; font-weight:800; letter-spacing:-0.025em; line-height:1.2; margin: 0 0 14px; max-width: 400px; }
+  .login-left .lede { font-weight:400; color:#aebdcd; font-size:14px; line-height:1.6; max-width: 350px; }
+  .login-flow { position:relative; display:flex; flex-direction:column; margin-top: 24px; }
+  .login-flow-step { display:flex; align-items:center; gap:13px; padding: 9px 0; }
+  .login-flow-step .num { width:26px; height:26px; border-radius:7px; border:1.5px solid rgba(255,255,255,.18); background: rgba(255,255,255,.03); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; font-weight:700; color:#c9d3de; flex-shrink:0; }
+  .login-flow-step:nth-child(1) .num { border-color: var(--accent); color: var(--accent); background: rgba(34,195,230,.08); }
+  .login-flow-step .txt { font-size:13px; font-weight:500; color:#c9d3de; }
+  .login-flow-step .txt b { color:#fff; font-weight:700; }
+  .login-flow-line { width:1.5px; height:11px; background: rgba(255,255,255,.14); margin-left:12.5px; }
+  .login-left .foot { position:relative; font-size:11.5px; font-weight:500; color:#7c8ba0; }
+
+  .login-right { flex:1; display:flex; align-items:center; justify-content:center; background:#fff; padding: 40px; }
+  .login-card { width:360px; text-align:left; }
+  .login-card h2 { font-family: var(--font-display); font-size:23px; font-weight:800; letter-spacing:-0.02em; margin: 0 0 8px; }
+  .login-card p { color:#5a6472; font-size:13.5px; margin-bottom: 20px; line-height:1.55; }
+  .login-card label { display:block; font-size:12px; font-weight:700; margin-bottom:6px; }
+  .login-card input[type=email] { width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:8px; font-size:14px; margin-bottom:16px; }
+  .login-card input[type=email]:focus { outline:none; border-color:var(--accent); }
+  .google-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:var(--ink); color:#fff; border:none; border-radius:9px; padding:14px; font-size:14.5px; font-weight:700; cursor:pointer; }
+  .google-btn:hover { background:#000; }
+  .login-note { font-size:12px; font-weight:500; color:#4a5568; margin-top: 18px; line-height:1.55; padding: 12px 14px; background: var(--paper); border-radius:8px; border-left: 3px solid var(--accent); }
+  .role-hint { font-size:11px; color:var(--steel); margin-top:14px; line-height:1.6; }
+  .role-hint code { background:var(--paper); padding:1px 5px; border-radius:3px; font-family:var(--font-mono); font-size:10.5px; }
+
+  /* ---------- FIELD WORKER ---------- */
+  .fw-shell { max-width: 480px; margin: 0 auto; padding: 36px 22px 60px; }
+  .fw-title { text-align:center; font-family: var(--font-display); font-size: 23px; font-weight:800; letter-spacing:-0.02em; margin: 0 0 4px; }
+  .fw-sub { text-align:center; color: var(--steel); font-size:13.5px; margin-bottom: 30px; }
+  .fw-bigbtn { display:flex; align-items:center; gap:16px; width:100%; background:#fff; border:2px solid var(--line); border-radius:12px; padding:22px 20px; margin-bottom:16px; cursor:pointer; text-align:left; }
+  .fw-bigbtn:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(34,195,230,.12); }
+  .fw-bigbtn .ic { font-size: 28px; width:48px; text-align:center; flex-shrink:0; }
+  .fw-bigbtn .txt .h { font-size:16px; font-weight:700; }
+  .fw-bigbtn .txt .d { font-size:12.5px; color:var(--steel); margin-top:2px; }
+
+  .fw-card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px 22px; }
+  .fw-field { margin-bottom: 17px; }
+  .fw-field label { display:block; font-size:13px; font-weight:700; margin-bottom:6px; }
+  .fw-field input, .fw-field select, .fw-field textarea { width:100%; font-size:15px; padding:12px 13px; border:1.5px solid var(--line); border-radius:8px; background:#fcfcfb; }
+  .fw-field input:focus, .fw-field select:focus, .fw-field textarea:focus { outline:none; border-color: var(--accent); background:#fff; }
+  .fw-field input[disabled] { color: var(--steel); background:var(--paper); }
+  .fw-submit { width:100%; background: var(--ink); color:#fff; border:none; padding:16px; border-radius:9px; font-size:15.5px; font-weight:700; cursor:pointer; margin-top: 6px; }
+  .fw-submit:hover { background:#000; }
+  .fw-submit:disabled { opacity:.5; cursor:default; }
+  .fw-back { display:inline-flex; align-items:center; gap:6px; color:var(--steel); font-size:14px; margin-bottom:18px; cursor:pointer; background:none; border:none; padding:0; }
+
+  .fw-confirm { text-align:center; padding: 30px 20px; }
+  .fw-confirm .check { width:60px; height:60px; border-radius:50%; background:var(--moss-dim); color:var(--moss); font-size:30px; display:flex; align-items:center; justify-content:center; margin:0 auto 18px; }
+  .fw-confirm h2 { font-family:var(--font-display); font-size:19px; margin-bottom:8px; }
+  .fw-confirm p { color:var(--steel); font-size:14px; line-height:1.5; }
+
+  .fw-slipbox { background:var(--ink); color:#fff; border-radius:10px; padding: 16px 20px; text-align:center; margin: 18px 0; }
+  .fw-slipbox .lbl { font-size:10.5px; letter-spacing:1.5px; color:#a8b8c8; text-transform:uppercase; font-family:var(--font-mono); }
+  .fw-slipbox .num { font-family:var(--font-mono); font-size:24px; font-weight:700; color:var(--accent); margin-top:4px; }
+
+  .fw-detail-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .fw-detail-row .k { color:var(--steel); }
+  .fw-detail-row .v { font-weight:600; text-align:right; }
+
+  .upload-choice { display:flex; gap:10px; margin-top:6px; }
+  .upload-btn { flex:1; border:2px dashed var(--line); border-radius:10px; padding:18px 8px; text-align:center; cursor:pointer; background:#fcfcfb; position:relative; }
+  .upload-btn:hover { border-color:var(--accent); background:var(--accent-dim); }
+  .upload-btn .ic { font-size:24px; margin-bottom:5px; }
+  .upload-btn .lbl { font-size:12px; font-weight:600; }
+  .upload-btn input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .upload-btn.has-file { border-color:var(--moss); background:var(--moss-dim); }
+  .upload-filename { font-size:10.5px; color:var(--moss); margin-top:4px; font-weight:600; word-break:break-all; }
+
+  .empty-state { text-align:center; padding:40px 20px; color:var(--steel); font-size:13.5px; }
+  .inline-error { color:var(--rust); font-size:12.5px; margin-top:8px; }
+
+  .my-slips-heading { font-family: var(--font-display); font-size:15px; font-weight:800; margin: 30px 0 12px; color:var(--ink); }
+  .my-slip-row { display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:9px; }
+  .my-slip-row .info { flex:1; min-width:0; }
+  .my-slip-row .info .primary { font-weight:700; font-size:13.5px; }
+  .my-slip-row .info .secondary { font-size:11.5px; color:var(--steel); margin-top:2px; }
+  .my-slip-row .info .slipno-tag { font-family:var(--font-mono); font-weight:700; color:var(--ink); }
+  .my-slip-btn { background:var(--ink); color:#fff; border:none; padding:8px 13px; border-radius:7px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .my-slip-btn:hover { background:#000; }
+  .my-slip-btn.ghost { background:#fff; border:1px solid var(--line); color:var(--ink); }
+  .my-slip-row-wrap { margin-bottom:9px; }
+  .my-slip-row-wrap .my-slip-row { margin-bottom:6px; }
+  .my-slip-row .chevron { color:var(--steel); font-size:16px; flex-shrink:0; }
+  .my-slip-detail { background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:12px 16px; }
+
+  /* ---------- ISSUER CONSOLE (Greeta) ---------- */
+  .g-shell { display:flex; min-height: calc(100vh - 49px); font-size:13.5px; }
+  .g-sidebar { width:230px; background: var(--ink-2); color:#f1efe9; padding:22px 0; flex-shrink:0; }
+  .g-sidebar .brand { padding:0 22px 18px; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:14px; }
+  .g-sidebar .plate2 { display:inline-block; border:1.5px solid var(--accent); color:var(--accent); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1.5px; padding:2px 7px; margin-bottom:9px; }
+  .g-sidebar .name { font-family:var(--font-display); font-weight:800; font-size:17px; }
+  .g-nav { display:flex; align-items:center; gap:11px; margin:3px 12px; padding:11px 14px; color:#c8c5bc; font-size:13px; border-radius:8px; cursor:pointer; }
+  .g-nav .ic { font-size:15px; width:18px; text-align:center; }
+  .g-nav .count { margin-left:auto; background:rgba(255,255,255,.12); color:#fff; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; font-family:var(--font-mono); }
+  .g-nav:hover { background:rgba(255,255,255,.06); color:#fff; }
+  .g-nav.active { background: var(--accent); color:#062430; font-weight:700; }
+  .g-nav.active .count { background:rgba(0,0,0,.15); color:#062430; }
+
+  .g-main { flex:1; padding:30px 36px; background: var(--paper); }
+  .g-view { display:none; }
+  .g-view.active { display:block; }
+  .g-title { font-family:var(--font-display); font-size:21px; font-weight:800; letter-spacing:-0.01em; margin-bottom:3px; }
+  .g-sub { color:var(--steel); font-size:13px; margin-bottom:22px; }
+
+  .g-flow { display:flex; align-items:center; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:24px; }
+  .g-flow-step { display:flex; align-items:center; gap:10px; flex:1; }
+  .g-flow-step .dot { width:28px; height:28px; border-radius:50%; background:var(--paper); border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--steel); flex-shrink:0; }
+  .g-flow-step.current .dot { background:var(--accent); border-color:var(--accent); color:#062430; }
+  .g-flow-step .txt { font-size:12px; }
+  .g-flow-step .txt .h { font-weight:700; color:var(--ink); }
+  .g-flow-step .txt .d { color:var(--steel); font-size:10.5px; }
+  .g-flow-arrow { color:var(--line); font-size:18px; padding:0 8px; }
+
+  .g-list { display:flex; flex-direction:column; gap:10px; }
+  .g-row { display:flex; align-items:center; gap:18px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 20px; cursor:pointer; transition: box-shadow .15s, border-color .15s; }
+  .g-row:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(21,42,67,.08); }
+  .g-row .site-tag { font-family:var(--font-mono); font-size:10px; font-weight:700; background:var(--paper); border:1px solid var(--line); padding:3px 8px; border-radius:5px; color:var(--steel); flex-shrink:0; }
+  .g-row .main-info { flex:1; min-width:0; }
+  .g-row .main-info .primary { font-weight:700; font-size:14px; }
+  .g-row .main-info .secondary { font-size:12px; color:var(--steel); margin-top:2px; }
+  .g-row .rate-info { text-align:right; flex-shrink:0; }
+  .g-row .rate-info .rate { font-family:var(--font-mono); font-weight:700; font-size:13.5px; }
+  .g-row .rate-info .unit { font-size:10.5px; color:var(--steel); }
+  .g-row .chevron { color:var(--steel); font-size:18px; flex-shrink:0; }
+  .pill { padding:3px 9px; border-radius:3px; font-size:10.5px; font-weight:700; font-family:var(--font-mono); flex-shrink:0; }
+  .pill.requested { background:var(--amber-dim); color:var(--amber); }
+  .pill.pending { background:var(--amber-dim); color:var(--amber); }
+  .pill.closed { background:var(--moss-dim); color:var(--moss); }
+
+  .stat-row { display:flex; gap:16px; margin-bottom:24px; }
+  .stat { flex:1; background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 20px; }
+  .stat .num { font-family:var(--font-mono); font-size:30px; font-weight:700; }
+  .stat .lbl { font-size:12.5px; color:var(--steel); margin-top:2px; }
+  .stat.amber { border-top:3px solid var(--amber); }
+  .stat.moss { border-top:3px solid var(--moss); }
+
+  /* ---------- DRAWER (shared: Issue + Override) ---------- */
+  .drawer-overlay { display:none; position:fixed; inset:0; background:rgba(21,42,67,.45); z-index:400; }
+  .drawer-overlay.show { display:block; }
+  .drawer { position:fixed; top:0; right:-460px; width:440px; height:100%; background:#fff; box-shadow:-8px 0 30px rgba(0,0,0,.15); z-index:401; transition: right .25s ease; overflow-y:auto; }
+  .drawer.show { right:0; }
+  .drawer-head { padding:22px 24px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:flex-start; }
+  .drawer-head .site-tag { font-family:var(--font-mono); font-size:10px; font-weight:700; background:var(--paper); border:1px solid var(--line); padding:3px 8px; border-radius:5px; color:var(--steel); }
+  .drawer-head h3 { font-family:var(--font-display); font-size:18px; margin:8px 0 0; }
+  .drawer-close { background:none; border:none; font-size:20px; color:var(--steel); cursor:pointer; }
+  .drawer-section { padding:18px 24px; border-bottom:1px solid var(--line); }
+  .drawer-section .sec-title { font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--steel); font-weight:700; margin-bottom:12px; }
+  .drawer-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; }
+  .drawer-row .k { color:var(--steel); }
+  .drawer-row .v { font-weight:600; text-align:right; }
+  .drawer-field { margin-bottom:14px; }
+  .drawer-field label { display:block; font-size:11.5px; font-weight:700; margin-bottom:5px; }
+  .drawer-field input, .drawer-field select, .drawer-field textarea { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:6px; font-size:13px; }
+  .drawer-field input:focus, .drawer-field select:focus { outline:none; border-color:var(--accent); }
+  .drawer-hours { font-size:12px; color:var(--steel); margin-top:-8px; margin-bottom:14px; }
+  .drawer-actions { padding:18px 24px; display:flex; gap:10px; }
+  .drawer-actions button { flex:1; padding:12px; border-radius:8px; font-size:13.5px; font-weight:700; cursor:pointer; border:none; }
+  .drawer-actions .btn-cancel { background:#fff; border:1px solid var(--line); color:var(--ink); }
+  .drawer-actions .btn-issue { background:var(--ink); color:#fff; }
+  .drawer-actions .btn-issue:hover { background:#000; }
+
+  /* ---------- MD DASHBOARD ---------- */
+  .md-shell { padding: 30px 40px 60px; max-width: 1000px; margin:0 auto; }
+  .md-header { text-align:center; margin-bottom:26px; }
+  .md-header h1 { font-family:var(--font-display); font-size:27px; font-weight:800; letter-spacing:-0.02em; margin:0 0 4px; }
+  .md-header p { color:var(--steel); font-size:14.5px; }
+  .md-search-wrap { max-width:620px; margin: 0 auto 30px; position:relative; }
+  .md-search { width:100%; font-size:17px; padding:17px 20px 17px 50px; border:2.5px solid var(--ink); border-radius:14px; }
+  .md-search:focus { outline:none; border-color:var(--accent); }
+  .md-search-ic { position:absolute; left:19px; top:50%; transform:translateY(-50%); font-size:19px; color:var(--steel); }
+  .md-search-hint { text-align:center; color:var(--steel); font-size:13px; margin-top:8px; }
+
+  .md-result-card { background:#fff; border:2px solid var(--line); border-radius:14px; padding:19px 22px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+  .md-result-card .info { flex:1; min-width:0; }
+  .md-result-card .slipno { font-family:var(--font-mono); font-weight:700; font-size:16px; }
+  .md-result-card .meta { color:var(--steel); font-size:13px; margin-top:4px; }
+  .md-override-btn { background:var(--ink); color:#fff; border:none; padding:11px 18px; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .md-override-btn:hover { background:#000; }
+  .site-chip { display:inline-block; background:var(--ink); color:#fff; font-family:var(--font-mono); font-size:10px; padding:3px 8px; border-radius:4px; margin-left:6px; }
+
+  .md-section-title { font-family: var(--font-display); font-size:18px; font-weight:800; margin: 30px 0 14px; }
+
+  /* ============================================================
+     MOBILE — most usage will be on phones, so these aren't
+     optional polish, they're required for the app to work at all
+     below ~760px wide.
+  ============================================================ */
+  @media (max-width: 760px) {
+    /* Login: the two-panel layout has no room on a phone — drop
+       the storytelling side entirely and let the sign-in card be
+       the whole screen. */
+    .login-left { display:none; }
+    .login-right { width:100%; padding:32px 20px; }
+    .login-card { width:100%; max-width:400px; }
+
+    /* Session bar: stop it squeezing into one unreadable line */
+    .session-bar { flex-wrap:wrap; gap:8px; row-gap:8px; }
+    .session-bar > div { flex-wrap:wrap; gap:6px !important; }
+
+    /* Issuer Console: a fixed sidebar next to a squeezed content
+       pane doesn't work on a phone — stack them instead. */
+    .g-shell { flex-direction:column; }
+    .g-sidebar { width:100%; padding:14px 0 6px; }
+    .g-sidebar .brand { padding:0 16px 12px; }
+    .g-nav { margin:2px 12px; }
+    .g-main { padding:20px 16px; }
+    .g-flow { flex-wrap:wrap; gap:10px 0; }
+    .g-flow-arrow { display:none; }
+    .g-flow-step { flex-basis:45%; }
+    .g-row { flex-wrap:wrap; row-gap:8px; }
+    .g-row .rate-info { margin-left:auto; }
+
+    /* MD dashboard: tighten side padding, let result cards wrap */
+    .md-shell { padding:24px 16px 50px; }
+    .md-result-card { flex-wrap:wrap; row-gap:10px; }
+    .md-result-card .info { flex-basis:100%; }
+
+    /* Drawers: a 440px fixed-width panel is WIDER than most phone
+       screens — without this, part of it renders permanently
+       off-screen (and visibly overlapping content) instead of
+       staying hidden until opened. */
+    .drawer { width:100%; right:-100%; }
+
+    /* Email log modal: fixed 560px also overflows a phone screen */
+    .email-modal { width:92vw; }
+
+    /* Two upload buttons side-by-side get too cramped to tap
+       comfortably below ~400px — stack them instead */
+    .upload-choice { flex-direction:column; }
+  }
+
+  @media (max-width: 420px) {
+    .g-flow-step { flex-basis:100%; }
+    .fw-shell { padding:28px 16px 50px; }
+  }
+
+  /* ---------- TOAST ---------- */
+  .toast { position:fixed; bottom:22px; right:22px; background: var(--ink); color:#fff; padding:12px 20px; border-radius:8px; font-size:12.5px; opacity:0; transform:translateY(10px); transition:.25s; z-index:900; border-left:3px solid var(--accent); max-width:320px; }
+  .toast.show { opacity:1; transform:translateY(0); }
+
+  /* ---------- EMAIL LOG VIEWER ---------- */
+  .email-modal-bg { display:none; position:fixed; inset:0; background:rgba(21,42,67,.5); z-index:600; align-items:center; justify-content:center; }
+  .email-modal-bg.show { display:flex; }
+  .email-modal { background:#fff; border-radius:12px; width:560px; max-height:80vh; overflow-y:auto; padding:0; }
+  .email-modal-head { padding:18px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:#fff; }
+  .email-modal-head h3 { font-family:var(--font-display); font-size:17px; margin:0; }
+  .email-item { padding:14px 22px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .email-item:hover { background:var(--paper); }
+  .email-item .subj { font-weight:700; font-size:13px; }
+  .email-item .meta { font-size:11.5px; color:var(--steel); margin-top:2px; }
+  .email-item .body { display:none; font-size:12.5px; color:#333; margin-top:10px; white-space:pre-wrap; background:var(--paper); padding:10px 12px; border-radius:6px; }
+  .email-item.expanded .body { display:block; }
+  .email-link-btn { background:none; border:1px solid var(--line); color:var(--ink); padding:6px 13px; border-radius:6px; font-size:11.5px; cursor:pointer; font-weight:600; }
+
+  /* ---------- CLOSE PICK LIST (clean, scannable — not too dense) ---------- */
+  .pick-row { display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:15px 17px; margin-bottom:10px; cursor:pointer; transition: border-color .15s, box-shadow .15s; }
+  .pick-row:hover { border-color: var(--accent); box-shadow: 0 3px 12px rgba(34,195,230,.1); }
+  .pick-row .pick-slipno { font-family: var(--font-mono); font-weight:700; font-size:15px; color:var(--ink); }
+  .pick-row .pick-info { flex:1; min-width:0; }
+  .pick-row .pick-sub { font-size:12px; color:var(--steel); margin-top:2px; }
+  .pick-row .pick-arrow { color:var(--steel); font-size:20px; flex-shrink:0; }
+
+  /* ---------- SPINNER (real animated feedback during photo processing) ---------- */
+  .spinner { display:inline-block; width:16px; height:16px; border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation: spin .7s linear infinite; vertical-align:middle; margin-right:7px; }
+  .spinner.dark { border-color: rgba(21,42,67,.2); border-top-color: var(--ink); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .upload-btn.processing { opacity:.6; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOGIN
+============================================================ -->
+<div class="screen active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-left">
+      <div class="top">
+        <div class="plate">⬡ DUTY SLIP PORTAL</div>
+        <h1>One place to request, issue, and close out duty slips.</h1>
+        <div class="lede">A field request, a quick issue, a signature on-site, a clean close-out. Nothing extra.</div>
+        <div class="login-flow">
+          <div class="login-flow-step"><div class="num">1</div><div class="txt"><b>Request</b> — submitted from any site</div></div>
+          <div class="login-flow-line"></div>
+          <div class="login-flow-step"><div class="num">2</div><div class="txt"><b>Issue</b> — numbered, PDF generated</div></div>
+          <div class="login-flow-line"></div>
+          <div class="login-flow-step"><div class="num">3</div><div class="txt"><b>Sign</b> — printed on-site</div></div>
+          <div class="login-flow-line"></div>
+          <div class="login-flow-step"><div class="num">4</div><div class="txt"><b>Close</b> — field worker finishes it here</div></div>
+        </div>
+      </div>
+      <div class="foot">Every record tied to a real, verified sign-in.</div>
+    </div>
+    <div class="login-right">
+      <div class="login-card">
+        <h2>Sign in to continue</h2>
+        <p>This prototype simulates Google Sign-In — type any email to continue.</p>
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@gmail.com">
+        <button class="google-btn" onclick="doLogin()">🔵 Sign in with Google</button>
+        <div class="inline-error" id="login-error" style="display:none;"></div>
+        <div class="login-note">Your email is recorded against everything you submit — this keeps records accurate and prevents duplicate or anonymous entries.</div>
+        <div class="role-hint">
+          <b>Testing tip</b> — this prototype has no real backend yet, so role is simulated by what's in your email:<br>
+          contains <code>greeta</code> → Issuer view · contains <code>md</code> or <code>admin</code> → MD view · anything else → Field Worker view
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FIELD WORKER: HOME
+============================================================ -->
+<div class="screen" id="screen-field-home">
+  <div class="session-bar">
+    <div class="who"><span class="avatar" id="fw-avatar">?</span> <span id="fw-email"></span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="email-link-btn" onclick="openEmailLog()">📧 Sent Emails</button>
+      <button class="reset-link" onclick="resetDemo()">Reset all demo data</button>
+      <button class="btn-ghost-sm" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+  <div class="fw-shell">
+    <div class="fw-title">Welcome</div>
+    <div class="fw-sub">Choose what you need to do</div>
+    <div class="fw-bigbtn" onclick="showScreen('screen-field-request')">
+      <div class="ic">📝</div>
+      <div class="txt"><div class="h">Request a Duty Slip</div><div class="d">Fill in machine, vendor, and work details</div></div>
+    </div>
+    <div class="fw-bigbtn" onclick="goToCloseList()">
+      <div class="ic">✅</div>
+      <div class="txt"><div class="h">Close a Duty Slip</div><div class="d">Pick from your issued slips to finish the job</div></div>
+    </div>
+
+    <div class="my-slips-heading">My Duty Slips</div>
+    <div id="my-slips-list"></div>
+    <div class="empty-state" id="my-slips-empty" style="display:none; padding:24px 10px;">You haven't requested any duty slips yet.</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FIELD WORKER: REQUEST FORM
+============================================================ -->
+<div class="screen" id="screen-field-request">
+  <div class="session-bar">
+    <div class="who"><span class="avatar" id="fw-avatar2">?</span> <span id="fw-email2"></span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="email-link-btn" onclick="openEmailLog()">📧 Sent Emails</button>
+      <button class="reset-link" onclick="resetDemo()">Reset all demo data</button>
+      <button class="btn-ghost-sm" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+  <div class="fw-shell">
+    <button class="fw-back" onclick="showScreen('screen-field-home')">‹ Back</button>
+    <div class="fw-title" style="font-size:19px; text-align:left;">Request a Duty Slip</div>
+    <div class="fw-sub" style="text-align:left; margin-bottom:20px;">Only the details you'd normally give — nothing extra.</div>
+    <div class="fw-card">
+      <div class="fw-field"><label>Your Email</label><input type="email" id="rq-email" disabled></div>
+      <div class="fw-field"><label>Site / Project</label>
+        <select id="rq-site"><option value="">Select your site…</option><option>Site A</option><option>Site B</option><option>Site C</option></select>
+      </div>
+      <div class="fw-field"><label>Date</label><input type="date" id="rq-date"></div>
+      <div class="fw-field"><label>Engineer Name</label><input type="text" id="rq-engineer" placeholder="Your name"></div>
+      <div class="fw-field"><label>Location (Bridge No. or Chainage)</label><input type="text" id="rq-location" placeholder="e.g. ch51900"></div>
+      <div class="fw-field"><label>Category of Work</label>
+        <select id="rq-category"><option value="">Select…</option><option>RCC</option><option>Earthwork</option><option>Other</option></select>
+      </div>
+      <div class="fw-field"><label>Machine / Vehicle</label><input type="text" id="rq-machine" placeholder="e.g. Hitachi"></div>
+      <div class="fw-field"><label>Name of Vendor</label><input type="text" id="rq-vendor"></div>
+      <div class="fw-field"><label>Rate</label><input type="number" id="rq-rate" min="0"></div>
+      <div class="fw-field"><label>Payment Unit</label>
+        <select id="rq-paymentUnit"><option>Per Day</option><option>Per Hour</option></select>
+      </div>
+      <div class="fw-field"><label>Details of Work</label><textarea rows="2" id="rq-details"></textarea></div>
+      <div class="fw-field"><label>Planned Qty</label><input type="number" id="rq-plannedQty" min="0"></div>
+      <div class="fw-field"><label>Work Unit</label><input type="text" id="rq-workUnit" placeholder="e.g. Cum"></div>
+      <div class="inline-error" id="rq-error" style="display:none;"></div>
+      <button class="fw-submit" onclick="submitRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FIELD WORKER: CONFIRMATION
+============================================================ -->
+<div class="screen" id="screen-field-confirm">
+  <div class="session-bar">
+    <div class="who"><span class="avatar" id="fw-avatar3">?</span> <span id="fw-email3"></span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="email-link-btn" onclick="openEmailLog()">📧 Sent Emails</button>
+      <button class="reset-link" onclick="resetDemo()">Reset all demo data</button>
+      <button class="btn-ghost-sm" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+  <div class="fw-shell">
+    <div class="fw-confirm">
+      <div class="check">✓</div>
+      <h2>Request submitted</h2>
+      <p>It'll be reviewed and issued a Duty Slip Number. Once issued, you'll find it under "Close a Duty Slip" to finish the job when the work is done.</p>
+      <button class="fw-submit" style="margin-top:24px;" onclick="showScreen('screen-field-home'); renderMyDutySlips();">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FIELD WORKER: UPDATE / SEARCH
+============================================================ -->
+<div class="screen" id="screen-field-update">
+  <div class="session-bar">
+    <div class="who"><span class="avatar" id="fw-avatar4">?</span> <span id="fw-email4"></span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="email-link-btn" onclick="openEmailLog()">📧 Sent Emails</button>
+      <button class="reset-link" onclick="resetDemo()">Reset all demo data</button>
+      <button class="btn-ghost-sm" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+  <div class="fw-shell">
+    <button class="fw-back" onclick="showScreen('screen-field-home')">‹ Back</button>
+    <div class="fw-title" style="font-size:19px; text-align:left;">Close a Duty Slip</div>
+    <div class="fw-sub" style="text-align:left; margin-bottom:20px;">Pick the one you finished — no need to remember a number.</div>
+
+    <div id="close-pick-list"></div>
+    <div class="empty-state" id="close-pick-empty" style="display:none;">Nothing ready to close right now. Duty slips show up here once they're issued.</div>
+
+    <div id="update-found" style="display:none; margin-top:18px;">
+      <button class="fw-back" onclick="backToCloseList()">‹ Choose a different slip</button>
+      <div class="fw-slipbox"><div class="lbl">Duty Slip</div><div class="num" id="up-found-slipno"></div></div>
+      <div class="fw-card" style="margin-bottom:14px;">
+        <div class="fw-detail-row"><span class="k">Machine / Vehicle</span><span class="v" id="up-machine"></span></div>
+        <div class="fw-detail-row"><span class="k">Vendor</span><span class="v" id="up-vendor"></span></div>
+        <div class="fw-detail-row"><span class="k">Planned Qty</span><span class="v" id="up-plannedqty"></span></div>
+      </div>
+      <div class="fw-card">
+        <div class="fw-field"><label>Actual Qty Completed</label><input type="number" id="up-actualqty" min="0" placeholder="e.g. 95"></div>
+        <div class="fw-field"><label>Diesel Issued (Vehicle Reg No.)</label><input type="text" id="up-diesel" placeholder="e.g. reg. number"></div>
+        <div class="inline-error" id="up-error" style="display:none;"></div>
+        <div class="fw-field">
+          <label>Upload Signed Duty Slip</label>
+          <div class="upload-choice">
+            <div class="upload-btn" id="up-camera-btn">
+              <div class="ic" id="up-camera-ic">📷</div><div class="lbl">Take Photo</div>
+              <input type="file" accept="image/*" capture="environment" id="up-camera-input" onchange="handleUpload(this,'camera')">
+            </div>
+            <div class="upload-btn" id="up-gallery-btn">
+              <div class="ic" id="up-gallery-ic">🖼️</div><div class="lbl">Choose from Gallery</div>
+              <input type="file" accept="image/*,.pdf" id="up-gallery-input" onchange="handleUpload(this,'gallery')">
+            </div>
+          </div>
+          <div class="upload-filename" id="up-filename" style="display:none;"></div>
+        </div>
+        <button class="fw-submit" id="submit-close-btn" onclick="submitClose()">Submit &amp; Finish</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ISSUER CONSOLE (Greeta)
+============================================================ -->
+<div class="screen" id="screen-greeta">
+  <div class="session-bar">
+    <div class="who"><span class="avatar" id="g-avatar">?</span> <span id="g-email"></span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="email-link-btn" onclick="openEmailLog()">📧 Sent Emails</button>
+      <button class="reset-link" onclick="resetDemo()">Reset all demo data</button>
+      <button class="btn-ghost-sm" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+  <div class="g-shell">
+    <div class="g-sidebar">
+      <div class="brand"><div class="plate2">DUTY SLIP</div><div class="name">Issuer<br>Console</div></div>
+      <div style="padding:0 22px 14px;">
+        <button class="reset-link" style="color:#8a8f96;" onclick="setCompanyName()">⚙ Company name</button>
+      </div>
+      <div class="g-nav active" id="nav-issue" onclick="showGView('issue')"><span class="ic">📥</span> Issue Queue <span class="count" id="count-issue">0</span></div>
+      <div class="g-nav" id="nav-close" onclick="showGView('close')"><span class="ic">✅</span> Close Queue <span class="count" id="count-close">0</span></div>
+      <div class="g-nav" id="nav-gdash" onclick="showGView('gdash')"><span class="ic">📊</span> Dashboard</div>
+    </div>
+    <div class="g-main">
+      <div class="g-view active" id="gview-issue">
+        <div class="g-title">Issue Queue</div>
+        <div class="g-sub">New requests submitted through the portal, awaiting a Duty Slip number — across all sites.</div>
+        <div class="g-flow">
+          <div class="g-flow-step current"><div class="dot">1</div><div class="txt"><div class="h">Requested</div><div class="d">Field worker submits</div></div></div>
+          <div class="g-flow-arrow">›</div>
+          <div class="g-flow-step"><div class="dot">2</div><div class="txt"><div class="h">You Issue</div><div class="d">Slip number + PDF made</div></div></div>
+          <div class="g-flow-arrow">›</div>
+          <div class="g-flow-step"><div class="dot">3</div><div class="txt"><div class="h">Signed On Site</div><div class="d">Printed, work done</div></div></div>
+          <div class="g-flow-arrow">›</div>
+          <div class="g-flow-step"><div class="dot">4</div><div class="txt"><div class="h">Closed</div><div class="d">Field worker finishes it</div></div></div>
+        </div>
+        <div class="g-list" id="issue-list"></div>
+        <div class="empty-state" id="issue-empty" style="display:none;">No pending requests yet. Submit one from the Field Worker Home screen to test the flow.</div>
+      </div>
+
+      <div class="g-view" id="gview-close">
+        <div class="g-title">Close Queue</div>
+        <div class="g-sub">Field worker uploads close-out details — review the photo/scan here before approving.</div>
+
+        <div class="my-slips-heading" style="margin-top:0;">Awaiting Your Approval</div>
+        <div class="g-list" id="approval-list"></div>
+        <div class="empty-state" id="approval-empty" style="display:none;">Nothing submitted for approval right now.</div>
+
+        <div class="my-slips-heading">Awaiting Field Closure</div>
+        <div class="g-list" id="close-list"></div>
+        <div class="empty-state" id="close-empty" style="display:none;">Nothing pending closure right now.</div>
+      </div>
+
+      <div class="g-view" id="gview-gdash">
+        <div class="g-title">Dashboard</div>
+        <div class="g-sub">Quick overview across all sites.</div>
+        <div class="stat-row">
+          <div class="stat amber"><div class="num" id="g-stat-pending">0</div><div class="lbl">Pending Closure</div></div>
+          <div class="stat moss"><div class="num" id="g-stat-closed">0</div><div class="lbl">Closed</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MD DASHBOARD
+============================================================ -->
+<div class="screen" id="screen-md">
+  <div class="session-bar">
+    <div class="who"><span class="avatar" id="md-avatar">?</span> <span id="md-email"></span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="email-link-btn" onclick="openEmailLog()">📧 Sent Emails</button>
+      <button class="reset-link" onclick="resetDemo()">Reset all demo data</button>
+      <button class="btn-ghost-sm" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+  <div class="md-shell">
+    <div class="md-header"><h1>Duty Slip Overview</h1><p>All sites, one view. Search anything, or browse the summary below.</p>
+      <button class="reset-link" style="margin-top:8px;" onclick="setCompanyName()">⚙ Set company name for printed slips</button>
+    </div>
+    <div class="md-search-wrap">
+      <span class="md-search-ic">🔍</span>
+      <input class="md-search" id="md-search" placeholder="Search by name, vendor, machine, site, or Duty Slip number…" oninput="renderMdResults()">
+      <div class="md-search-hint">Try: a vendor name, a slip number, a machine, a site, or a date</div>
+    </div>
+    <div id="md-results"></div>
+    <div class="empty-state" id="md-empty" style="display:none;">No records yet. Issue a Duty Slip first to see it here.</div>
+    <div class="md-section-title">This Month at a Glance</div>
+    <div class="stat-row">
+      <div class="stat amber"><div class="num" id="md-stat-pending">0</div><div class="lbl">Pending Closure</div></div>
+      <div class="stat moss"><div class="num" id="md-stat-closed">0</div><div class="lbl">Closed</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ISSUE DRAWER (Greeta issuing a request)
+============================================================ -->
+<div class="drawer-overlay" id="issue-drawer-overlay" onclick="closeIssueDrawer()"></div>
+<div class="drawer" id="issue-drawer">
+  <div class="drawer-head">
+    <div><span class="site-tag" id="idr-site"></span><h3 id="idr-heading"></h3></div>
+    <button class="drawer-close" onclick="closeIssueDrawer()">✕</button>
+  </div>
+  <div class="drawer-section">
+    <div class="sec-title">Request Details</div>
+    <div class="drawer-row"><span class="k">Engineer</span><span class="v" id="idr-engineer"></span></div>
+    <div class="drawer-row"><span class="k">Location</span><span class="v" id="idr-location"></span></div>
+    <div class="drawer-row"><span class="k">Category of Work</span><span class="v" id="idr-category"></span></div>
+    <div class="drawer-row"><span class="k">Machine / Vehicle</span><span class="v" id="idr-machine"></span></div>
+    <div class="drawer-row"><span class="k">Vendor</span><span class="v" id="idr-vendor"></span></div>
+    <div class="drawer-row"><span class="k">Rate</span><span class="v" id="idr-rate"></span></div>
+    <div class="drawer-row"><span class="k">Planned Qty</span><span class="v" id="idr-qty"></span></div>
+    <div class="drawer-row"><span class="k">Details of Work</span><span class="v" id="idr-details"></span></div>
+  </div>
+  <div class="drawer-section">
+    <div class="sec-title">Issue This Duty Slip</div>
+    <div class="drawer-field"><label>Reporting Time</label><input type="time" id="idr-reportingTime" oninput="updateIssueHours()"></div>
+    <div class="drawer-hours" id="idr-reporting-hint"></div>
+    <div class="drawer-field"><label>Start Hour</label><input type="time" id="idr-startHour" value="09:00" oninput="updateIssueHours()"></div>
+    <div class="drawer-field"><label>End Hour</label><input type="time" id="idr-endHour" value="17:00" oninput="updateIssueHours()"></div>
+    <div class="drawer-hours" id="idr-hours-preview">Total: 8h 0m</div>
+    <div class="drawer-field"><label>Operator Name</label><input type="text" id="idr-operatorName" placeholder="Operator on duty"></div>
+    <div class="drawer-field" style="margin-bottom:0;"><label>Comments</label><input type="text" id="idr-comments"></div>
+  </div>
+  <div class="drawer-actions">
+    <button class="btn-cancel" onclick="closeIssueDrawer()">Cancel</button>
+    <button class="btn-issue" onclick="confirmIssue()">Issue &amp; Preview PDF</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     OVERRIDE DRAWER (MD) — full read-only detail + override fields
+============================================================ -->
+<div class="drawer-overlay" id="override-drawer-overlay" onclick="closeOverrideDrawer()"></div>
+<div class="drawer" id="override-drawer">
+  <div class="drawer-head">
+    <div><span class="site-tag" id="odr-site"></span><h3 id="odr-heading"></h3></div>
+    <button class="drawer-close" onclick="closeOverrideDrawer()">✕</button>
+  </div>
+  <div class="drawer-section">
+    <div class="sec-title">Full Details</div>
+    <div class="drawer-row"><span class="k">Date</span><span class="v" id="odr-view-date"></span></div>
+    <div class="drawer-row"><span class="k">Engineer</span><span class="v" id="odr-view-engineer"></span></div>
+    <div class="drawer-row"><span class="k">Location</span><span class="v" id="odr-view-location"></span></div>
+    <div class="drawer-row"><span class="k">Category of Work</span><span class="v" id="odr-view-category"></span></div>
+    <div class="drawer-row"><span class="k">Reporting / Start / End</span><span class="v" id="odr-view-times"></span></div>
+    <div class="drawer-row"><span class="k">Total Hour</span><span class="v" id="odr-view-totalhours"></span></div>
+    <div class="drawer-row"><span class="k">Operator Name</span><span class="v" id="odr-view-operator"></span></div>
+    <div class="drawer-row"><span class="k">Issued By</span><span class="v" id="odr-view-issuedby"></span></div>
+    <div class="drawer-row" id="odr-view-approvedby-row" style="display:none;"><span class="k">Approved By</span><span class="v" id="odr-view-approvedby"></span></div>
+    <div id="odr-view-photo-wrap" style="display:none; margin-top:12px;">
+      <div class="k" style="font-size:12px; margin-bottom:6px;">Signed Copy</div>
+      <img id="odr-view-photo" style="max-width:100%; border-radius:8px; border:1px solid var(--line);">
+      <a id="odr-view-pdf-link" href="#" target="_blank" style="display:none; font-size:12.5px;">📄 Open uploaded PDF</a>
+    </div>
+  </div>
+  <div class="drawer-section">
+    <div class="sec-title">Override Any Field</div>
+    <div class="drawer-field"><label>Status</label>
+      <select id="odr-status"><option value="PENDING">PENDING</option><option value="SUBMITTED">SUBMITTED</option><option value="CLOSED">CLOSED</option></select>
+    </div>
+    <div class="drawer-field"><label>Machine / Vehicle</label><input type="text" id="odr-machine"></div>
+    <div class="drawer-field"><label>Vendor</label><input type="text" id="odr-vendor"></div>
+    <div class="drawer-field"><label>Rate</label><input type="text" id="odr-rate"></div>
+    <div class="drawer-field"><label>Planned Qty</label><input type="text" id="odr-plannedqty"></div>
+    <div class="drawer-field"><label>Actual Qty</label><input type="text" id="odr-actualqty"></div>
+    <div class="drawer-field"><label>Diesel Issued</label><input type="text" id="odr-diesel"></div>
+    <div class="drawer-field" style="margin-bottom:0;"><label>Comments</label><input type="text" id="odr-comments"></div>
+  </div>
+  <div class="drawer-actions">
+    <button class="btn-cancel" onclick="downloadIssuedPdf(currentOverrideSlipNo)">Download PDF</button>
+    <button class="btn-issue" onclick="confirmOverride()">Save Override</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     APPROVE DRAWER (Greeta reviews field worker's close-out)
+============================================================ -->
+<div class="drawer-overlay" id="approve-drawer-overlay" onclick="closeApproveDrawer()"></div>
+<div class="drawer" id="approve-drawer">
+  <div class="drawer-head">
+    <div><span class="site-tag" id="apr-site"></span><h3 id="apr-heading"></h3></div>
+    <button class="drawer-close" onclick="closeApproveDrawer()">✕</button>
+  </div>
+  <div class="drawer-section">
+    <div class="sec-title">Original Duty Slip</div>
+    <div class="drawer-row"><span class="k">Machine / Vehicle</span><span class="v" id="apr-machine"></span></div>
+    <div class="drawer-row"><span class="k">Vendor</span><span class="v" id="apr-vendor"></span></div>
+    <div class="drawer-row"><span class="k">Planned Qty</span><span class="v" id="apr-plannedqty"></span></div>
+    <div class="drawer-row"><span class="k">Issued By</span><span class="v" id="apr-issuedby"></span></div>
+  </div>
+  <div class="drawer-section">
+    <div class="sec-title">Submitted By Field Worker</div>
+    <div class="drawer-row"><span class="k">Actual Qty</span><span class="v" id="apr-actualqty"></span></div>
+    <div class="drawer-row"><span class="k">Diesel Issued</span><span class="v" id="apr-diesel"></span></div>
+    <div id="apr-photo-wrap" style="margin-top:12px;">
+      <div class="k" style="font-size:12px; margin-bottom:6px;">Signed Duty Slip (uploaded)</div>
+      <img id="apr-photo" style="max-width:100%; border-radius:8px; border:1px solid var(--line); display:none;">
+      <a id="apr-pdf-link" href="#" target="_blank" style="display:none; font-size:12.5px;">📄 Open uploaded PDF</a>
+      <div id="apr-no-file" style="font-size:12.5px; color:var(--steel);"></div>
+    </div>
+  </div>
+  <div class="drawer-actions">
+    <button class="btn-cancel" onclick="rejectSubmission()">Send Back</button>
+    <button class="btn-issue" onclick="approveSubmission()" style="background:var(--moss);">Approve &amp; Close</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     EMAIL LOG VIEWER (simulated — see note in generatePdfPreview area)
+============================================================ -->
+<div class="email-modal-bg" id="email-modal-bg" onclick="if(event.target===this) closeEmailLog()">
+  <div class="email-modal">
+    <div class="email-modal-head">
+      <h3>📧 Sent Emails (simulated)</h3>
+      <button class="drawer-close" onclick="closeEmailLog()">✕</button>
+    </div>
+    <div id="email-list"></div>
+    <div class="empty-state" id="email-empty" style="display:none;">No emails yet — issue or approve a Duty Slip to see one appear here.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   DATA LAYER — localStorage-backed, starts completely empty.
+   requests[]  : submitted via Field Worker "Request a Duty Slip"
+                 status: 'REQUESTED' -> 'ISSUED' once Greeta acts
+   register[]  : created when Greeta issues a request
+                 status: 'PENDING' -> 'CLOSED' once field worker
+                 finishes it (or MD overrides)
+============================================================ */
+const DB = {
+  getRequests() { return JSON.parse(localStorage.getItem('dsp_requests') || '[]'); },
+  setRequests(v) { localStorage.setItem('dsp_requests', JSON.stringify(v)); },
+  getRegister() { return JSON.parse(localStorage.getItem('dsp_register') || '[]'); },
+  setRegister(v) { localStorage.setItem('dsp_register', JSON.stringify(v)); },
+  nextSlipNo() {
+    let seq = parseInt(localStorage.getItem('dsp_seq') || '0', 10) + 1;
+    localStorage.setItem('dsp_seq', String(seq));
+    return 'A-' + String(seq).padStart(3, '0');
+  },
+  getEmailLog() { return JSON.parse(localStorage.getItem('dsp_emails') || '[]'); },
+  setEmailLog(v) { localStorage.setItem('dsp_emails', JSON.stringify(v)); }
+};
+
+/**
+ * SIMULATED email — this is a static, no-backend prototype, so there is
+ * no real SMTP/mail service to send through. This logs what WOULD be
+ * sent (to, subject, body) and shows a toast, so the trigger points and
+ * message content can be verified now. Wiring this to a real send (e.g.
+ * MailApp.sendEmail in the actual Apps Script backend) is a drop-in
+ * swap for this one function later.
+ */
+function sendSimulatedEmail(to, subject, body) {
+  const log = DB.getEmailLog();
+  log.push({ to, subject, body, sentAt: new Date().toISOString() });
+  DB.setEmailLog(log);
+  showToast('📧 Email sent to ' + to + ' — "' + subject + '"');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(() => { t.className = 'toast'; }, 3200);
+}
+
+function openEmailLog() {
+  const log = DB.getEmailLog().slice().reverse();
+  const listEl = document.getElementById('email-list');
+  const emptyEl = document.getElementById('email-empty');
+  listEl.innerHTML = '';
+  emptyEl.style.display = log.length ? 'none' : 'block';
+  log.forEach((e, i) => {
+    const div = document.createElement('div');
+    div.className = 'email-item';
+    div.onclick = () => div.classList.toggle('expanded');
+    const when = new Date(e.sentAt).toLocaleString();
+    div.innerHTML = `
+      <div class="subj">${esc(e.subject)}</div>
+      <div class="meta">To: ${esc(e.to)} · ${esc(when)}</div>
+      <div class="body">${esc(e.body)}</div>`;
+    listEl.appendChild(div);
+  });
+  document.getElementById('email-modal-bg').classList.add('show');
+}
+
+function closeEmailLog() {
+  document.getElementById('email-modal-bg').classList.remove('show');
+}
+
+function resetDemo() {
+  if (!confirm('Clear all requests, issued slips, and start completely fresh?')) return;
+  localStorage.removeItem('dsp_requests');
+  localStorage.removeItem('dsp_register');
+  localStorage.removeItem('dsp_seq');
+  localStorage.removeItem('dsp_emails');
+  location.reload();
+}
+
+/* ============================================================
+   SESSION / LOGIN
+============================================================ */
+function getSession() { return JSON.parse(sessionStorage.getItem('dsp_session') || 'null'); }
+function setSession(s) { sessionStorage.setItem('dsp_session', JSON.stringify(s)); }
+
+function roleForEmail(email) {
+  const e = email.toLowerCase();
+  if (e.includes('greeta')) return 'issuer';
+  if (e.includes('md') || e.includes('admin')) return 'admin';
+  return 'field';
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!email || !email.includes('@')) {
+    errEl.textContent = 'Enter a valid email to continue.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  const role = roleForEmail(email);
+  setSession({ email, role });
+  routeToRoleHome();
+}
+
+function logout() {
+  sessionStorage.removeItem('dsp_session');
+  showScreen('screen-login');
+}
+
+function routeToRoleHome() {
+  const session = getSession();
+  if (!session) { showScreen('screen-login'); return; }
+  const initials = session.email.slice(0,2).toUpperCase();
+  ['fw-avatar','fw-avatar2','fw-avatar3','fw-avatar4','g-avatar','md-avatar'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = initials;
+  });
+  ['fw-email','fw-email2','fw-email3','fw-email4','g-email','md-email'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = session.email;
+  });
+
+  if (session.role === 'issuer') { showScreen('screen-greeta'); renderIssueQueue(); renderCloseQueueG(); renderGDash(); }
+  else if (session.role === 'admin') { showScreen('screen-md'); renderMdResults(); }
+  else { showScreen('screen-field-home'); document.getElementById('rq-email').value = session.email; renderMyDutySlips(); }
+}
+
+/* ============================================================
+   SCREEN SWITCHING
+============================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ============================================================
+   FIELD WORKER: REQUEST
+============================================================ */
+function submitRequest() {
+  const session = getSession();
+  const site = document.getElementById('rq-site').value;
+  const date = document.getElementById('rq-date').value;
+  const engineer = document.getElementById('rq-engineer').value.trim();
+  const location = document.getElementById('rq-location').value.trim();
+  const category = document.getElementById('rq-category').value;
+  const machine = document.getElementById('rq-machine').value.trim();
+  const vendor = document.getElementById('rq-vendor').value.trim();
+  const rate = document.getElementById('rq-rate').value;
+  const paymentUnit = document.getElementById('rq-paymentUnit').value;
+  const details = document.getElementById('rq-details').value.trim();
+  const plannedQty = document.getElementById('rq-plannedQty').value;
+  const workUnit = document.getElementById('rq-workUnit').value.trim();
+
+  const errEl = document.getElementById('rq-error');
+  if (!site || !date || !engineer || !location || !category || !machine || !vendor || !rate || !details || !plannedQty || !workUnit) {
+    errEl.textContent = 'Please fill in every field before submitting.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (Number(rate) < 0 || Number(plannedQty) < 0) {
+    errEl.textContent = 'Rate and Planned Qty cannot be negative.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const requests = DB.getRequests();
+  requests.push({
+    id: 'req_' + Date.now(),
+    email: session.email, site, date, engineer, location, category, machine, vendor,
+    rate, paymentUnit, details, plannedQty, workUnit,
+    status: 'REQUESTED', submittedAt: new Date().toISOString()
+  });
+  DB.setRequests(requests);
+
+  ['rq-site','rq-date','rq-engineer','rq-location','rq-category','rq-machine','rq-vendor','rq-rate','rq-details','rq-plannedQty','rq-workUnit']
+    .forEach(id => document.getElementById(id).value = '');
+
+  showScreen('screen-field-confirm');
+}
+
+/* ============================================================
+   FIELD WORKER: UPDATE / CLOSE
+============================================================ */
+let foundSlip = null;
+let uploadedFileName = null;
+
+function goToCloseList() {
+  document.getElementById('update-found').style.display = 'none';
+  uploadProcessing = false;
+  uploadedFileName = null;
+  uploadedFileDataUrl = null;
+  uploadedFileType = null;
+  showScreen('screen-field-update');
+  renderClosePickList();
+}
+
+function backToCloseList() {
+  document.getElementById('update-found').style.display = 'none';
+  document.getElementById('close-pick-list').style.display = '';
+  renderClosePickList();
+}
+
+/** Clean, scannable list of this field worker's own PENDING slips — pick one, no number to remember or type. */
+function renderClosePickList() {
+  const session = getSession();
+  if (!session) return;
+  const listEl = document.getElementById('close-pick-list');
+  const emptyEl = document.getElementById('close-pick-empty');
+  const pending = DB.getRegister().filter(r => r.requesterEmail === session.email && r.status === 'PENDING');
+
+  listEl.innerHTML = '';
+  emptyEl.style.display = pending.length ? 'none' : 'block';
+  pending.slice().reverse().forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'pick-row';
+    div.onclick = () => selectSlipForClose(r.slipNo);
+    div.innerHTML = `
+      <span class="pick-slipno">${esc(r.slipNo)}</span>
+      <div class="pick-info">
+        <div style="font-weight:600; font-size:13.5px;">${esc(r.machine)} — ${esc(r.vendor)}</div>
+        <div class="pick-sub">${esc(r.site)} · ${esc(r.date)}</div>
+      </div>
+      <span class="pick-arrow">›</span>`;
+    listEl.appendChild(div);
+  });
+}
+
+/** Opens the close-out form for a specific slip, selected directly from the list. */
+function selectSlipForClose(slipNo) {
+  const register = DB.getRegister();
+  const rec = register.find(r => r.slipNo === slipNo);
+  if (!rec) return;
+
+  foundSlip = rec;
+  document.getElementById('up-found-slipno').textContent = rec.slipNo;
+  document.getElementById('up-machine').textContent = rec.machine;
+  document.getElementById('up-vendor').textContent = rec.vendor;
+  document.getElementById('up-plannedqty').textContent = rec.plannedQty + ' ' + (rec.workUnit || '');
+  document.getElementById('up-actualqty').value = '';
+  document.getElementById('up-diesel').value = '';
+  document.getElementById('up-filename').style.display = 'none';
+  document.getElementById('up-camera-btn').classList.remove('has-file', 'processing');
+  document.getElementById('up-gallery-btn').classList.remove('has-file', 'processing');
+  document.getElementById('up-camera-ic').textContent = '📷';
+  document.getElementById('up-gallery-ic').textContent = '🖼️';
+  uploadProcessing = false;
+  uploadedFileName = null;
+  uploadedFileDataUrl = null;
+  uploadedFileType = null;
+
+  document.getElementById('close-pick-list').style.display = 'none';
+  document.getElementById('close-pick-empty').style.display = 'none';
+  document.getElementById('update-found').style.display = 'block';
+}
+
+/** Jumps straight into the close flow for a specific slip — used by "My Duty Slips" list on Home so nobody has to hunt for it again. */
+function continueSlip(slipNo) {
+  showScreen('screen-field-update');
+  selectSlipForClose(slipNo);
+}
+
+/** Re-generates the PDF for an already-issued slip, using whatever is stored — works anytime, not just at issue time. */
+function downloadIssuedPdf(slipNo) {
+  const register = DB.getRegister();
+  const rec = register.find(r => r.slipNo === slipNo);
+  if (!rec) return;
+  generatePdfPreview(rec);
+}
+
+/** Everything the currently logged-in field worker has ever requested — awaiting issue, pending closure, submitted, or closed. */
+function renderMyDutySlips() {
+  const session = getSession();
+  if (!session) return;
+  const listEl = document.getElementById('my-slips-list');
+  const emptyEl = document.getElementById('my-slips-empty');
+  if (!listEl) return;
+
+  const requests = DB.getRequests().filter(r => r.email === session.email && r.status === 'REQUESTED');
+  const register = DB.getRegister().filter(r => r.requesterEmail === session.email);
+
+  listEl.innerHTML = '';
+  const total = requests.length + register.length;
+  emptyEl.style.display = total ? 'none' : 'block';
+
+  // Awaiting issue (submitted, not yet acted on)
+  requests.forEach((r, i) => {
+    const rowId = 'awaiting-' + i;
+    const div = document.createElement('div');
+    div.className = 'my-slip-row-wrap';
+    div.innerHTML = `
+      <div class="my-slip-row" onclick="toggleMySlipDetail('${rowId}')" style="cursor:pointer;">
+        <div class="info">
+          <div class="primary">${esc(r.engineer)} — ${esc(r.machine)}</div>
+          <div class="secondary">${esc(r.vendor)} · ${esc(r.site)} · ${esc(r.date)}</div>
+        </div>
+        <span class="pill requested">AWAITING ISSUE</span>
+        <span class="chevron">›</span>
+      </div>
+      <div class="my-slip-detail" id="detail-${rowId}" style="display:none;">
+        <div class="drawer-row"><span class="k">Location</span><span class="v">${esc(r.location)}</span></div>
+        <div class="drawer-row"><span class="k">Category of Work</span><span class="v">${esc(r.category)}</span></div>
+        <div class="drawer-row"><span class="k">Rate</span><span class="v">₹${esc(r.rate)} ${esc(r.paymentUnit)}</span></div>
+        <div class="drawer-row"><span class="k">Planned Qty</span><span class="v">${esc(r.plannedQty)} ${esc(r.workUnit)}</span></div>
+        <div class="drawer-row"><span class="k">Details of Work</span><span class="v">${esc(r.details)}</span></div>
+      </div>`;
+    listEl.appendChild(div);
+  });
+
+  // Issued (pending / submitted / closed) — newest first
+  register.slice().reverse().forEach((r, i) => {
+    const rowId = 'reg-' + r.slipNo;
+    const div = document.createElement('div');
+    div.className = 'my-slip-row-wrap';
+
+    let pillClass = 'pending', pillLabel = 'PENDING', actionHtml = '';
+    if (r.status === 'PENDING') {
+      pillClass = 'pending'; pillLabel = 'PENDING';
+      actionHtml = `
+        <button class="my-slip-btn ghost" onclick="event.stopPropagation(); downloadIssuedPdf('${r.slipNo}')">Download PDF</button>
+        <button class="my-slip-btn" onclick="event.stopPropagation(); continueSlip('${r.slipNo}')">Finish This Slip</button>`;
+    } else if (r.status === 'SUBMITTED') {
+      pillClass = 'pending'; pillLabel = 'AWAITING APPROVAL';
+      actionHtml = `<button class="my-slip-btn ghost" onclick="event.stopPropagation(); downloadIssuedPdf('${r.slipNo}')">Download PDF</button>`;
+    } else {
+      pillClass = 'closed'; pillLabel = 'CLOSED';
+      actionHtml = `<button class="my-slip-btn ghost" onclick="event.stopPropagation(); downloadIssuedPdf('${r.slipNo}')">Download PDF</button>`;
+    }
+
+    div.innerHTML = `
+      <div class="my-slip-row" onclick="toggleMySlipDetail('${rowId}')" style="cursor:pointer;">
+        <div class="info">
+          <div class="primary"><span class="slipno-tag">${esc(r.slipNo)}</span> — ${esc(r.machine)}</div>
+          <div class="secondary">${esc(r.vendor)} · ${esc(r.site)} · ${esc(r.date)}</div>
+        </div>
+        <span class="pill ${pillClass}">${pillLabel}</span>
+        ${actionHtml}
+        <span class="chevron">›</span>
+      </div>
+      <div class="my-slip-detail" id="detail-${rowId}" style="display:none;">
+        <div class="drawer-row"><span class="k">Location</span><span class="v">${esc(r.location)}</span></div>
+        <div class="drawer-row"><span class="k">Category of Work</span><span class="v">${esc(r.category)}</span></div>
+        <div class="drawer-row"><span class="k">Rate</span><span class="v">₹${esc(r.rate)} ${esc(r.paymentUnit)}</span></div>
+        <div class="drawer-row"><span class="k">Planned Qty</span><span class="v">${esc(r.plannedQty)} ${esc(r.workUnit)}</span></div>
+        <div class="drawer-row"><span class="k">Reporting / Start / End</span><span class="v">${esc(r.reportingTime)||'—'} / ${esc(r.startHour)||'—'} / ${esc(r.endHour)||'—'}</span></div>
+        <div class="drawer-row"><span class="k">Total Hour</span><span class="v">${esc(r.totalHours)||'—'}</span></div>
+        <div class="drawer-row"><span class="k">Operator</span><span class="v">${esc(r.operatorName)||'—'}</span></div>
+        <div class="drawer-row"><span class="k">Issued By</span><span class="v">${esc(r.issuedBy)}</span></div>
+        ${r.actualQty !== undefined && r.actualQty !== '' ? `<div class="drawer-row"><span class="k">Actual Qty</span><span class="v">${esc(r.actualQty)}</span></div>` : ''}
+        ${r.diesel ? `<div class="drawer-row"><span class="k">Diesel Issued</span><span class="v">${esc(r.diesel)}</span></div>` : ''}
+        ${r.status === 'CLOSED' && r.approvedBy ? `<div class="drawer-row"><span class="k">Approved By</span><span class="v">${esc(r.approvedBy)}</span></div>` : ''}
+      </div>`;
+    listEl.appendChild(div);
+  });
+}
+
+/** Toggles the inline expanded detail panel for a My Duty Slips row. */
+function toggleMySlipDetail(rowId) {
+  const el = document.getElementById('detail-' + rowId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+let uploadedFileDataUrl = null;
+let uploadedFileType = null; // 'image' | 'pdf'
+
+let uploadProcessing = false;
+
+function handleUpload(input, source) {
+  if (!input.files || !input.files[0]) return;
+  if (uploadProcessing) {
+    input.value = ''; // clear the selection — ignore this pick, one is already in progress
+    return;
+  }
+  const file = input.files[0];
+  uploadedFileName = file.name;
+  uploadProcessing = true;
+  setSubmitCloseEnabled();
+
+  // Only one file can be the actual attachment — clear any previous
+  // "attached" state on BOTH buttons before this new one takes over,
+  // otherwise switching from camera to gallery (or back) leaves the
+  // old button looking attached too.
+  document.getElementById('up-camera-btn').classList.remove('has-file');
+  document.getElementById('up-gallery-btn').classList.remove('has-file');
+  // Disable the OTHER button too, so a second file can't be picked mid-processing
+  document.getElementById('up-camera-btn').classList.add('processing');
+  document.getElementById('up-gallery-btn').classList.add('processing');
+
+  const btnId = source === 'camera' ? 'up-camera-btn' : 'up-gallery-btn';
+  const icId = source === 'camera' ? 'up-camera-ic' : 'up-gallery-ic';
+  const originalIcon = source === 'camera' ? '📷' : '🖼️';
+  const otherBtnId = source === 'camera' ? 'up-gallery-btn' : 'up-camera-btn';
+  const btnEl = document.getElementById(btnId);
+  const icEl = document.getElementById(icId);
+  const fnEl = document.getElementById('up-filename');
+
+  icEl.innerHTML = '<span class="spinner dark"></span>';
+  fnEl.style.display = 'block';
+  fnEl.textContent = 'Processing ' + file.name + '… this can take a few seconds for a real photo.';
+
+  const uploadStartedAt = Date.now();
+  const MIN_VISIBLE_MS = 600; // always show progress for at least this long, even if the real work finishes instantly
+
+  const finishUp = (success, message) => {
+    const elapsed = Date.now() - uploadStartedAt;
+    const remaining = Math.max(0, MIN_VISIBLE_MS - elapsed);
+    setTimeout(() => {
+      btnEl.classList.remove('processing');
+      document.getElementById(otherBtnId).classList.remove('processing');
+      icEl.textContent = originalIcon;
+      uploadProcessing = false;
+      setSubmitCloseEnabled();
+      if (success) btnEl.classList.add('has-file');
+      if (message) fnEl.textContent = message;
+    }, remaining);
+  };
+
+  if (file.type.startsWith('image/')) {
+    uploadedFileType = 'image';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Downscale so it stores compactly but still previews clearly
+        const maxDim = 900;
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          const scale = maxDim / Math.max(w, h);
+          w = Math.round(w * scale); h = Math.round(h * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        uploadedFileDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        finishUp(true, '✓ Attached: ' + file.name);
+      };
+      img.onerror = () => {
+        uploadedFileDataUrl = null;
+        finishUp(false, '⚠ Could not read that image — try a different file.');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // PDF or other file type — store as-is (no downscale possible)
+    uploadedFileType = 'pdf';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedFileDataUrl = e.target.result;
+      finishUp(true, '✓ Attached: ' + file.name);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+/** Prevents submitting while a photo/PDF is still being processed — closes the race condition where "Submit & Finish" fires before the upload is actually ready. */
+function setSubmitCloseEnabled() {
+  const btn = document.getElementById('submit-close-btn');
+  if (!btn) return;
+  btn.disabled = uploadProcessing;
+  btn.innerHTML = uploadProcessing ? '<span class="spinner"></span> Waiting for upload to finish…' : 'Submit &amp; Finish';
+}
+
+function submitClose() {
+  if (!foundSlip) return;
+  if (uploadProcessing) {
+    alert('Your photo/file is still processing — wait a moment and try again.');
+    return;
+  }
+  const actualQty = document.getElementById('up-actualqty').value;
+  const diesel = document.getElementById('up-diesel').value;
+  const errEl = document.getElementById('up-error');
+
+  if (actualQty !== '' && Number(actualQty) < 0) {
+    errEl.textContent = 'Actual Qty cannot be negative.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const register = DB.getRegister();
+  const idx = register.findIndex(r => r.slipNo === foundSlip.slipNo);
+  if (idx === -1) return;
+  register[idx].actualQty = actualQty;
+  register[idx].diesel = diesel;
+  register[idx].signedFileName = uploadedFileName || '';
+  register[idx].signedFileDataUrl = uploadedFileDataUrl || '';
+  register[idx].signedFileType = uploadedFileType || '';
+  register[idx].status = 'SUBMITTED';
+  register[idx].submittedAt = new Date().toISOString();
+
+  try {
+    DB.setRegister(register);
+  } catch (e) {
+    alert('The attached file is too large to store in this demo\'s local storage. Try a smaller photo, or submit without an attachment.');
+    return;
+  }
+
+  showScreen('screen-field-home');
+  renderMyDutySlips();
+}
+
+/* ============================================================
+   ISSUER CONSOLE
+============================================================ */
+function showGView(view) {
+  document.querySelectorAll('.g-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('gview-' + view).classList.add('active');
+  document.querySelectorAll('.g-nav').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-' + (view === 'issue' ? 'issue' : view === 'close' ? 'close' : 'gdash')).classList.add('active');
+  if (view === 'issue') renderIssueQueue();
+  if (view === 'close') renderCloseQueueG();
+  if (view === 'gdash') renderGDash();
+}
+
+function renderIssueQueue() {
+  const requests = DB.getRequests().filter(r => r.status === 'REQUESTED');
+  const listEl = document.getElementById('issue-list');
+  const emptyEl = document.getElementById('issue-empty');
+  document.getElementById('count-issue').textContent = requests.length;
+  listEl.innerHTML = '';
+  emptyEl.style.display = requests.length ? 'none' : 'block';
+  requests.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'g-row';
+    div.onclick = () => openIssueDrawer(r.id);
+    div.innerHTML = `
+      <span class="site-tag">${esc(r.site).toUpperCase()}</span>
+      <div class="main-info">
+        <div class="primary">${esc(r.engineer)} — ${esc(r.machine)}</div>
+        <div class="secondary">${esc(r.vendor)} · ${esc(r.location)} · ${esc(r.date)}</div>
+      </div>
+      <div class="rate-info"><div class="rate">₹${esc(r.rate)}</div><div class="unit">${esc(r.paymentUnit)}</div></div>
+      <span class="pill requested">NEW</span>
+      <span class="chevron">›</span>`;
+    listEl.appendChild(div);
+  });
+}
+
+function renderCloseQueueG() {
+  const allRegister = DB.getRegister();
+  const submitted = allRegister.filter(r => r.status === 'SUBMITTED');
+  const pending = allRegister.filter(r => r.status === 'PENDING');
+
+  document.getElementById('count-close').textContent = submitted.length;
+
+  const approvalListEl = document.getElementById('approval-list');
+  const approvalEmptyEl = document.getElementById('approval-empty');
+  approvalListEl.innerHTML = '';
+  approvalEmptyEl.style.display = submitted.length ? 'none' : 'block';
+  submitted.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'g-row';
+    div.onclick = () => openApproveDrawer(r.slipNo);
+    div.innerHTML = `
+      <span class="site-tag">${esc(r.site).toUpperCase()}</span>
+      <div class="main-info">
+        <div class="primary">${esc(r.slipNo)} — ${esc(r.machine)}</div>
+        <div class="secondary">${esc(r.vendor)} · submitted with ${r.signedFileName ? '1 file' : 'no file'}</div>
+      </div>
+      <span class="pill pending">AWAITING APPROVAL</span>
+      <button class="my-slip-btn ghost" onclick="event.stopPropagation(); downloadIssuedPdf('${r.slipNo}')">Download PDF</button>
+      <span class="chevron">›</span>`;
+    approvalListEl.appendChild(div);
+  });
+
+  const listEl = document.getElementById('close-list');
+  const emptyEl = document.getElementById('close-empty');
+  listEl.innerHTML = '';
+  emptyEl.style.display = pending.length ? 'none' : 'block';
+  pending.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'g-row';
+    div.style.cursor = 'default';
+    div.innerHTML = `
+      <span class="site-tag">${esc(r.site).toUpperCase()}</span>
+      <div class="main-info">
+        <div class="primary">${esc(r.slipNo)} — ${esc(r.machine)}</div>
+        <div class="secondary">${esc(r.vendor)} · issued by ${esc(r.issuedBy)}</div>
+      </div>
+      <span class="pill pending">PENDING</span>
+      <button class="my-slip-btn ghost" onclick="downloadIssuedPdf('${r.slipNo}')">Download PDF</button>`;
+    listEl.appendChild(div);
+  });
+}
+
+/* ---- Approve drawer (Greeta) ---- */
+let currentApproveSlipNo = null;
+
+function openApproveDrawer(slipNo) {
+  const register = DB.getRegister();
+  const r = register.find(x => x.slipNo === slipNo);
+  if (!r) return;
+  currentApproveSlipNo = slipNo;
+
+  document.getElementById('apr-site').textContent = r.site.toUpperCase();
+  document.getElementById('apr-heading').textContent = r.slipNo + ' — ' + r.machine;
+  document.getElementById('apr-machine').textContent = r.machine;
+  document.getElementById('apr-vendor').textContent = r.vendor;
+  document.getElementById('apr-plannedqty').textContent = r.plannedQty + ' ' + (r.workUnit || '');
+  document.getElementById('apr-issuedby').textContent = r.issuedBy;
+  document.getElementById('apr-actualqty').textContent = r.actualQty + ' ' + (r.workUnit || '');
+  document.getElementById('apr-diesel').textContent = r.diesel || '—';
+
+  const imgEl = document.getElementById('apr-photo');
+  const pdfLinkEl = document.getElementById('apr-pdf-link');
+  const noFileEl = document.getElementById('apr-no-file');
+  imgEl.style.display = 'none';
+  pdfLinkEl.style.display = 'none';
+  noFileEl.textContent = '';
+
+  if (r.signedFileType === 'image' && r.signedFileDataUrl) {
+    imgEl.src = r.signedFileDataUrl;
+    imgEl.style.display = 'block';
+  } else if (r.signedFileType === 'pdf' && r.signedFileDataUrl) {
+    pdfLinkEl.href = '#';
+    pdfLinkEl.onclick = (e) => { e.preventDefault(); openStoredFile(r.signedFileDataUrl); };
+    pdfLinkEl.style.display = 'inline-block';
+  } else {
+    noFileEl.textContent = 'No file was attached.';
+  }
+
+  document.getElementById('approve-drawer-overlay').classList.add('show');
+  document.getElementById('approve-drawer').classList.add('show');
+}
+
+function closeApproveDrawer() {
+  document.getElementById('approve-drawer-overlay').classList.remove('show');
+  document.getElementById('approve-drawer').classList.remove('show');
+}
+
+function approveSubmission() {
+  const session = getSession();
+  const register = DB.getRegister();
+  const idx = register.findIndex(r => r.slipNo === currentApproveSlipNo);
+  if (idx === -1) return;
+  register[idx].status = 'CLOSED';
+  register[idx].approvedBy = session.email;
+  register[idx].closedAt = new Date().toISOString();
+  DB.setRegister(register);
+
+  const r = register[idx];
+  sendSimulatedEmail(
+    r.requesterEmail,
+    'Your Duty Slip ' + r.slipNo + ' has been closed',
+    'Hi,\n\nYour Duty Slip has been reviewed and approved.\n\n' +
+    'Duty Slip No: ' + r.slipNo + '\n' +
+    'Machine / Vehicle: ' + r.machine + '\n' +
+    'Actual Qty: ' + (r.actualQty || '—') + ' ' + (r.workUnit || '') + '\n' +
+    'Approved By: ' + session.email + '\n\n' +
+    'No further action needed — this job is now closed.\n\n' +
+    '— Sent from Duty Slip Portal'
+  );
+
+  closeApproveDrawer();
+  renderCloseQueueG();
+  renderGDash();
+}
+
+function rejectSubmission() {
+  if (!confirm('Send this back to the field worker? Their submitted qty/diesel/file will be cleared and they\'ll need to resubmit.')) return;
+  const register = DB.getRegister();
+  const idx = register.findIndex(r => r.slipNo === currentApproveSlipNo);
+  if (idx === -1) return;
+  register[idx].status = 'PENDING';
+  register[idx].actualQty = '';
+  register[idx].diesel = '';
+  register[idx].signedFileName = '';
+  register[idx].signedFileDataUrl = '';
+  register[idx].signedFileType = '';
+  DB.setRegister(register);
+  closeApproveDrawer();
+  renderCloseQueueG();
+  renderGDash();
+}
+
+function renderGDash() {
+  const register = DB.getRegister();
+  document.getElementById('g-stat-pending').textContent = register.filter(r => r.status === 'PENDING' || r.status === 'SUBMITTED').length;
+  document.getElementById('g-stat-closed').textContent = register.filter(r => r.status === 'CLOSED').length;
+}
+
+/* ---- Issue drawer ---- */
+let currentIssueRequestId = null;
+
+function openIssueDrawer(id) {
+  const requests = DB.getRequests();
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  currentIssueRequestId = id;
+
+  document.getElementById('idr-site').textContent = r.site.toUpperCase();
+  document.getElementById('idr-heading').textContent = r.engineer + ' — ' + r.machine;
+  document.getElementById('idr-engineer').textContent = r.engineer;
+  document.getElementById('idr-location').textContent = r.location;
+  document.getElementById('idr-category').textContent = r.category;
+  document.getElementById('idr-machine').textContent = r.machine;
+  document.getElementById('idr-vendor').textContent = r.vendor;
+  document.getElementById('idr-rate').textContent = '₹' + r.rate + ' ' + r.paymentUnit;
+  document.getElementById('idr-qty').textContent = r.plannedQty + ' ' + r.workUnit;
+  document.getElementById('idr-details').textContent = r.details;
+
+  document.getElementById('idr-reportingTime').value = '';
+  document.getElementById('idr-startHour').value = '09:00';
+  document.getElementById('idr-endHour').value = '17:00';
+  document.getElementById('idr-operatorName').value = '';
+  document.getElementById('idr-comments').value = '';
+  updateIssueHours();
+
+  document.getElementById('issue-drawer-overlay').classList.add('show');
+  document.getElementById('issue-drawer').classList.add('show');
+}
+
+function closeIssueDrawer() {
+  document.getElementById('issue-drawer-overlay').classList.remove('show');
+  document.getElementById('issue-drawer').classList.remove('show');
+}
+
+function toMinutes(t) {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function updateIssueHours() {
+  const reportEl = document.getElementById('idr-reportingTime');
+  const startEl = document.getElementById('idr-startHour');
+  const endEl = document.getElementById('idr-endHour');
+  const reportHintEl = document.getElementById('idr-reporting-hint');
+  const hoursEl = document.getElementById('idr-hours-preview');
+
+  // Constrain the native pickers themselves, not just after-the-fact checks
+  if (startEl.value) {
+    endEl.min = startEl.value;
+    reportEl.max = startEl.value;
+  }
+
+  // Reporting Time must be strictly earlier than Start Hour
+  if (reportEl.value && startEl.value) {
+    if (toMinutes(reportEl.value) >= toMinutes(startEl.value)) {
+      reportEl.value = '';
+      reportHintEl.textContent = 'Reporting Time must be earlier than Start Hour — pick it again.';
+      reportHintEl.style.color = 'var(--rust)';
+    } else {
+      reportHintEl.textContent = '';
+    }
+  } else {
+    reportHintEl.textContent = '';
+  }
+
+  // Start / End Hour range
+  if (!startEl.value || !endEl.value) { hoursEl.textContent = ''; return; }
+  const total = computeTotalHours(startEl.value, endEl.value);
+  if (!total) {
+    endEl.value = '';
+    hoursEl.textContent = 'End Hour must be after Start Hour — pick it again.';
+    hoursEl.style.color = 'var(--rust)';
+    return;
+  }
+  hoursEl.textContent = 'Total: ' + total;
+  hoursEl.style.color = 'var(--steel)';
+}
+
+function computeTotalHours(startStr, endStr) {
+  if (!startStr || !endStr) return '';
+  const [sh, sm] = startStr.split(':').map(Number);
+  const [eh, em] = endStr.split(':').map(Number);
+  const startMin = sh * 60 + sm, endMin = eh * 60 + em;
+  if (endMin <= startMin) return '';
+  const diff = endMin - startMin;
+  return Math.floor(diff / 60) + 'h' + (diff % 60 ? ' ' + (diff % 60) + 'm' : '');
+}
+
+function confirmIssue() {
+  const session = getSession();
+  const reportingTime = document.getElementById('idr-reportingTime').value;
+  const startHour = document.getElementById('idr-startHour').value;
+  const endHour = document.getElementById('idr-endHour').value;
+  const totalHours = computeTotalHours(startHour, endHour);
+  if (startHour && endHour && !totalHours) {
+    alert('End Hour must be after Start Hour.');
+    return;
+  }
+  if (reportingTime && startHour && toMinutes(reportingTime) >= toMinutes(startHour)) {
+    alert('Reporting Time must be earlier than Start Hour.');
+    return;
+  }
+
+  const requests = DB.getRequests();
+  const idx = requests.findIndex(r => r.id === currentIssueRequestId);
+  if (idx === -1) return;
+  const r = requests[idx];
+
+  const slipNo = DB.nextSlipNo();
+  const operatorName = document.getElementById('idr-operatorName').value.trim();
+  const comments = document.getElementById('idr-comments').value.trim();
+
+  const register = DB.getRegister();
+  register.push({
+    slipNo, site: r.site, date: r.date, engineer: r.engineer, location: r.location,
+    category: r.category, machine: r.machine, vendor: r.vendor, rate: r.rate,
+    paymentUnit: r.paymentUnit, details: r.details, plannedQty: r.plannedQty, workUnit: r.workUnit,
+    reportingTime, startHour, endHour, totalHours, operatorName, comments,
+    issuedBy: 'Greeta Mathew', issuedByEmail: session.email, issuedAt: new Date().toISOString(),
+    requesterEmail: r.email,
+    status: 'PENDING', actualQty: '', diesel: '', signedFileName: ''
+  });
+  DB.setRegister(register);
+
+  requests[idx].status = 'ISSUED';
+  DB.setRequests(requests);
+
+  sendSimulatedEmail(
+    r.email,
+    'Your Duty Slip ' + slipNo + ' has been issued',
+    'Hi,\n\nYour Duty Slip request has been reviewed and issued.\n\n' +
+    'Duty Slip No: ' + slipNo + '\n' +
+    'Machine / Vehicle: ' + r.machine + '\n' +
+    'Vendor: ' + r.vendor + '\n' +
+    'Site: ' + r.site + '\n\n' +
+    'Print this slip, get it signed on-site, and once the work is finished, ' +
+    'go to "Close a Duty Slip" in the portal — it will already be in your list, no number to remember.\n\n' +
+    '— Sent from Duty Slip Portal'
+  );
+
+  generatePdfPreview(register[register.length - 1]);
+  closeIssueDrawer();
+  renderIssueQueue();
+  renderCloseQueueG();
+  renderGDash();
+}
+
+/* ============================================================
+   PDF PREVIEW — matches the finalized Code.gs template exactly
+============================================================ */
+function getCompanyName() {
+  return localStorage.getItem('dsp_company_name') || 'Your Company Pvt. Ltd.';
+}
+
+function setCompanyName() {
+  const current = getCompanyName();
+  const next = prompt('Company name to show on printed Duty Slips:', current === 'Your Company Pvt. Ltd.' ? '' : current);
+  if (next === null) return;
+  const trimmed = next.trim();
+  if (trimmed) {
+    localStorage.setItem('dsp_company_name', trimmed);
+    alert('Saved. New Duty Slip PDFs will use "' + trimmed + '".');
+  }
+}
+
+function generatePdfPreview(d) {
+  const row = (label, value) => `<tr><td class="label">${label}</td><td class="value">${value || ''}</td></tr>`;
+  const blankSig = (label) => `<td class="sig"><div class="sig-space"></div><div class="sig-caption">${label}</div></td>`;
+  const autoSig = (label, name) => `<td class="sig"><div class="sig-space"><span class="sig-cursive">${name || ''}</span></div><div class="sig-caption">${label}</div></td>`;
+  const companyName = getCompanyName();
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; padding: 26px 32px; }
+    .header { text-align:center; margin-bottom: 4px; }
+    .header .company { font-size: 19px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color:#152a43; }
+    .header .rule { height:2px; background:#152a43; margin: 8px auto 6px; width:100%; }
+    .header .site-line { font-size: 11px; color:#666; letter-spacing: 0.3px; margin-bottom: 6px; }
+    .title { text-align:center; font-size:14px; font-weight:bold; letter-spacing:1.5px; margin: 6px 0 18px; text-decoration: underline; }
+    table.fields { width:100%; border-collapse: collapse; margin-bottom: 20px; }
+    table.fields td { border: 1px solid #888; padding: 7px 10px; vertical-align: top; }
+    table.fields .label { width: 230px; color:#333; background:#fafafa; }
+    table.fields .value { font-weight: 600; }
+    table.sig-table { width:100%; border-collapse: collapse; margin-top: 30px; }
+    table.sig-table td.sig { border: 1px solid #888; text-align:center; padding: 6px 8px 8px; width:25%; }
+    .sig-space { min-height: 30px; display:flex; align-items:flex-end; justify-content:center; padding-bottom: 4px; }
+    .sig-cursive { font-family: 'Segoe Script', 'Brush Script MT', 'Lucida Handwriting', cursive; font-size: 22px; color:#152a43; transform: rotate(-2deg); display:inline-block; }
+    .sig-caption { font-size: 10px; color:#555; border-top: 1px solid #ccc; padding-top: 4px; }
+    .footer-note { margin-top: 22px; font-size: 9.5px; color:#999; text-align:center; }
+    .action-bar { position:sticky; top:0; background:#152a43; padding:12px 16px; margin:-26px -32px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; z-index:10; }
+    .action-bar .hint { color:#c9d3de; font-size:12px; }
+    .action-bar .btns { display:flex; gap:8px; }
+    .action-bar button { border:none; padding:9px 16px; border-radius:7px; font-size:12.5px; font-weight:700; cursor:pointer; font-family: Arial, sans-serif; }
+    .action-bar .btn-print { background:#22c3e6; color:#062430; }
+    .action-bar .btn-close { background:rgba(255,255,255,.12); color:#fff; }
+    @media print { .action-bar { display:none; } }
+  </style></head><body>
+    <div class="action-bar">
+      <span class="hint">This is a live preview — nothing here is saved until you print/save it.</span>
+      <div class="btns">
+        <button class="btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+        <button class="btn-close" onclick="window.close()">✕ Close &amp; Return to Portal</button>
+      </div>
+    </div>
+    <div class="header">
+      <div class="company">${esc(companyName)}</div>
+      <div class="rule"></div>
+      <div class="site-line">Site / Project: ${esc(d.site || '—')}</div>
+    </div>
+    <div class="title">DUTY SLIP</div>
+    <table class="fields">
+      ${row('Duty Slip No.', d.slipNo)}
+      ${row('Date', d.date)}
+      ${row('Reporting Time', d.reportingTime)}
+      ${row('Rate', d.rate + ' ' + d.paymentUnit)}
+      ${row('Machine / Vehicle', d.machine)}
+      ${row('Name of Vendor', d.vendor)}
+      ${row('Site Engineer', d.engineer)}
+      ${row('Name of Duty Slip Issuing Person', d.issuedBy)}
+      ${row('Comments', d.comments)}
+      ${row('Diesel Issued (Mentioning Vehicle Reg No.)', d.diesel)}
+      ${row('Start Hour', d.startHour)}
+      ${row('End Hour', d.endHour)}
+      ${row('Total Hour', d.totalHours)}
+      ${row('Location', d.location)}
+      ${row('Name of Operator', d.operatorName)}
+      ${row('Description of Work Done', d.details)}
+      ${row('Planned Qty', d.plannedQty ? (d.plannedQty + ' ' + (d.workUnit||'')) : '')}
+      ${d.actualQty ? row('Actual Qty', d.actualQty + ' ' + (d.workUnit||'')) : ''}
+    </table>
+    <table class="sig-table"><tr>
+      ${blankSig('Signature of Site Engineer')}
+      ${blankSig('Signature of Operator / Owner')}
+      ${blankSig('Signature of Store Person')}
+      ${autoSig('Signature of Duty Slip Issuing Person', d.issuedBy)}
+    </tr></table>
+    <div class="footer-note">Generated via Duty Slip Portal</div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+/* ============================================================
+   MD DASHBOARD
+============================================================ */
+function renderMdResults() {
+  const register = DB.getRegister();
+  document.getElementById('md-stat-pending').textContent = register.filter(r => r.status === 'PENDING' || r.status === 'SUBMITTED').length;
+  document.getElementById('md-stat-closed').textContent = register.filter(r => r.status === 'CLOSED').length;
+
+  const q = (document.getElementById('md-search').value || '').toLowerCase().trim();
+  const resultsEl = document.getElementById('md-results');
+  const emptyEl = document.getElementById('md-empty');
+  resultsEl.innerHTML = '';
+
+  if (register.length === 0) {
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const filtered = q
+    ? register.filter(r => JSON.stringify(r).toLowerCase().includes(q))
+    : register;
+
+  filtered.slice().reverse().forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'md-result-card';
+    div.style.cursor = 'pointer';
+    div.onclick = () => openOverrideDrawer(r.slipNo);
+    const statusClass = r.status === 'CLOSED' ? 'closed' : 'pending';
+    const statusLabel = r.status === 'SUBMITTED' ? 'AWAITING APPROVAL' : r.status;
+    div.innerHTML = `
+      <div class="info">
+        <div class="slipno">${esc(r.slipNo)} — ${esc(r.vendor)} <span class="site-chip">${esc(r.site).toUpperCase()}</span></div>
+        <div class="meta">${esc(r.machine)} · Issued ${esc(r.date)} by ${esc(r.issuedBy)}</div>
+      </div>
+      <span class="pill ${statusClass}">${esc(statusLabel)}</span>
+      <button class="my-slip-btn ghost" onclick="event.stopPropagation(); downloadIssuedPdf('${r.slipNo}')">Download PDF</button>
+      <button class="md-override-btn" onclick="event.stopPropagation(); openOverrideDrawer('${r.slipNo}')">View &amp; Override</button>`;
+    resultsEl.appendChild(div);
+  });
+}
+
+/* ---- Override drawer ---- */
+let currentOverrideSlipNo = null;
+
+function openOverrideDrawer(slipNo) {
+  const register = DB.getRegister();
+  const r = register.find(x => x.slipNo === slipNo);
+  if (!r) return;
+  currentOverrideSlipNo = slipNo;
+
+  document.getElementById('odr-site').textContent = r.site.toUpperCase();
+  document.getElementById('odr-heading').textContent = r.slipNo + ' — ' + r.vendor;
+
+  document.getElementById('odr-view-date').textContent = r.date;
+  document.getElementById('odr-view-engineer').textContent = r.engineer;
+  document.getElementById('odr-view-location').textContent = r.location;
+  document.getElementById('odr-view-category').textContent = r.category;
+  document.getElementById('odr-view-times').textContent = (r.reportingTime||'—') + ' / ' + (r.startHour||'—') + ' / ' + (r.endHour||'—');
+  document.getElementById('odr-view-totalhours').textContent = r.totalHours || '—';
+  document.getElementById('odr-view-operator').textContent = r.operatorName || '—';
+  document.getElementById('odr-view-issuedby').textContent = r.issuedBy;
+
+  const approvedRow = document.getElementById('odr-view-approvedby-row');
+  if (r.approvedBy) {
+    approvedRow.style.display = 'flex';
+    document.getElementById('odr-view-approvedby').textContent = r.approvedBy;
+  } else {
+    approvedRow.style.display = 'none';
+  }
+
+  const photoWrap = document.getElementById('odr-view-photo-wrap');
+  const imgEl = document.getElementById('odr-view-photo');
+  const pdfLinkEl = document.getElementById('odr-view-pdf-link');
+  imgEl.style.display = 'none';
+  pdfLinkEl.style.display = 'none';
+  if (r.signedFileType === 'image' && r.signedFileDataUrl) {
+    imgEl.src = r.signedFileDataUrl;
+    imgEl.style.display = 'block';
+    photoWrap.style.display = 'block';
+  } else if (r.signedFileType === 'pdf' && r.signedFileDataUrl) {
+    pdfLinkEl.href = '#';
+    pdfLinkEl.onclick = (e) => { e.preventDefault(); openStoredFile(r.signedFileDataUrl); };
+    pdfLinkEl.style.display = 'inline-block';
+    photoWrap.style.display = 'block';
+  } else {
+    photoWrap.style.display = 'none';
+  }
+
+  document.getElementById('odr-status').value = r.status;
+  document.getElementById('odr-machine').value = r.machine;
+  document.getElementById('odr-vendor').value = r.vendor;
+  document.getElementById('odr-rate').value = r.rate;
+  document.getElementById('odr-plannedqty').value = r.plannedQty;
+  document.getElementById('odr-actualqty').value = r.actualQty || '';
+  document.getElementById('odr-diesel').value = r.diesel || '';
+  document.getElementById('odr-comments').value = r.comments || '';
+
+  document.getElementById('override-drawer-overlay').classList.add('show');
+  document.getElementById('override-drawer').classList.add('show');
+}
+
+function closeOverrideDrawer() {
+  document.getElementById('override-drawer-overlay').classList.remove('show');
+  document.getElementById('override-drawer').classList.remove('show');
+}
+
+function confirmOverride() {
+  const register = DB.getRegister();
+  const idx = register.findIndex(r => r.slipNo === currentOverrideSlipNo);
+  if (idx === -1) return;
+
+  const newRate = document.getElementById('odr-rate').value;
+  const newPlannedQty = document.getElementById('odr-plannedqty').value;
+  const newActualQty = document.getElementById('odr-actualqty').value;
+  if ((newRate !== '' && Number(newRate) < 0) ||
+      (newPlannedQty !== '' && Number(newPlannedQty) < 0) ||
+      (newActualQty !== '' && Number(newActualQty) < 0)) {
+    alert('Rate, Planned Qty, and Actual Qty cannot be negative.');
+    return;
+  }
+
+  register[idx].status = document.getElementById('odr-status').value;
+  register[idx].machine = document.getElementById('odr-machine').value;
+  register[idx].vendor = document.getElementById('odr-vendor').value;
+  register[idx].rate = newRate;
+  register[idx].plannedQty = newPlannedQty;
+  register[idx].actualQty = newActualQty;
+  register[idx].diesel = document.getElementById('odr-diesel').value;
+  register[idx].comments = document.getElementById('odr-comments').value;
+  register[idx].overriddenAt = new Date().toISOString();
+  DB.setRegister(register);
+
+  closeOverrideDrawer();
+  renderMdResults();
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function esc(v) { return (v===null||v===undefined) ? '' : String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/**
+ * Opens a stored data: URL (e.g. an uploaded PDF) reliably in a new tab.
+ * Chrome frequently shows a blank page for large data:application/pdf
+ * URLs opened via a direct link — converting to a Blob URL first fixes
+ * this, since Chrome's built-in PDF viewer handles blob: URLs correctly.
+ */
+function openStoredFile(dataUrl) {
+  try {
+    const [header, base64] = dataUrl.split(',');
+    const mimeMatch = header.match(/data:([^;]+);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const byteString = atob(base64);
+    const bytes = new Uint8Array(byteString.length);
+    for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+  } catch (e) {
+    alert('Could not open the uploaded file.');
+  }
+}
+
+/* ============================================================
+   BOOTSTRAP — resume session if one exists (survives refresh,
+   cleared on Log Out or when the tab/browser closes)
+============================================================ */
+(function boot() {
+  const session = getSession();
+  if (session) routeToRoleHome();
+})();
+</script>
+</body>
+</html>
